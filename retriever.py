@@ -40,7 +40,8 @@ class Retriever:
 
         # select the embedding method
         if self.use_local_embedding:
-            embed_f = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+            embed_f = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2",
+                                                                               metadata={"hnsw:space": "cosine"})
         else:
             openai.api_key = os.getenv("OPENAI_API_KEY")
             if not openai.api_key:
@@ -49,7 +50,8 @@ class Retriever:
         
         # create db store
         client = chromadb.PersistentClient(path=self.save_dir)
-        collection = client.get_or_create_collection(name=self.collection_name, embedding_function=embed_f)
+        collection = client.get_or_create_collection(name=self.collection_name, embedding_function=embed_f,
+                                                     metadata={"hnsw:space": "cosine"})
 
         items = []
         for idx, q in enumerate(docs):
@@ -85,7 +87,7 @@ class Retriever:
 
         print(f"Finished indexing {total_items} FAQ pairs into the collection '{self.collection_name}'.")
 
-    def query(self, query: str, top_k: int = None, sim_threshold: float = 0.5):
+    def query(self, query: str, top_k: int = None, sim_threshold: float = 0.3):
 
         if top_k is None:
             top_k = self.top_k

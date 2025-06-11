@@ -17,7 +17,7 @@ class Generator:
         self.temperature = temperature
         self.num_turns = num_turns # number of turns to include in the chat history
 
-    def prepare_messages(self, context: list, user_query: str, chat_history: list):
+    def prepare_messages(self, context: list, user_query: str, chat_history: list, ans_in_chat_hist: bool = True):
 
         if not context:
             return None, OOS_PROMPT
@@ -30,10 +30,18 @@ class Generator:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "system", "content": f"관련 FAQ:\n{context_block}"},
         ]
-        # add history up to last num_turns
-        for turn in chat_history[-self.num_turns:]:
-            messages.append(turn)
 
+        if ans_in_chat_hist:
+            # include both user and assistant turns in the history
+            for turn in chat_history[-self.num_turns:]:
+                messages.append(turn)
+        else:
+            # only include user turns in the history
+            messages.extend(
+                {"role": "user", "content": turn["content"]}
+                for turn in chat_history[-self.num_turns:] if turn["role"] == "user"
+            )
+        
         messages.append({"role": "user", "content": user_query})
 
         return messages, None
