@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv() # load environment variables from .env file
 
 
-class Retriever():
+class Retriever:
     def __init__(self, collection_name: str, use_local_embedding: bool, data_dir: str, save_dir: str = "chroma_db", top_k: int = 4):
 
         self.collection_name = collection_name
@@ -85,7 +85,8 @@ class Retriever():
 
         print(f"Finished indexing {total_items} FAQ pairs into the collection '{self.collection_name}'.")
 
-    def query(self, query: str, top_k: int = None):
+    def query(self, query: str, top_k: int = None, sim_threshold: float = 0.5):
+
         if top_k is None:
             top_k = self.top_k
         results = self.collection.query(query_texts=[query], n_results=top_k, include=["documents", "metadatas", "distances"])
@@ -93,10 +94,13 @@ class Retriever():
         docs, metas, dists = results["documents"], results["metadatas"], results["distances"]
         rows = []
         for doc, meta, dist in zip(docs[0], metas[0], dists[0]):
+            # convert cosine distance to cosine similarity
+            sim = 1 - dist
+            if sim < sim_threshold:
+                continue
             rows.append({"question": doc, "answer": meta["answer"], "dist": dist})
 
         return rows
-
 
 if __name__ == "__main__":
 
