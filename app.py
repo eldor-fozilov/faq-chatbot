@@ -18,8 +18,9 @@ DATA_PATH = os.getenv("DATA_PATH", "data/final_result.pkl")
 DB_DIR = os.getenv("DB_DIR", "chroma_db")
 USE_LOCAL_EMBEDDING = os.getenv("USE_LOCAL_EMBEDDING", "false").lower() == "true"
 
-TOP_K = 8 # number of top results to return from the vector DB
-SIMILARITY_THRESHOLD = 0.3 # minimum similarity to consider a result relevant
+TOP_K = 5 # number of top results to return from the vector DB
+SIMILARITY_THRESHOLD = 0.2 # minimum similarity to consider a result relevant
+NUM_TURNS = 8 # number of turns to include in the chat history (include both user and assistant turns)
 
 retriever = Retriever(
     collection_name=COLLECTION_NAME,
@@ -31,7 +32,7 @@ retriever = Retriever(
 )
 retriever.build_vector_db() # build the vector DB if not already done
 
-generator = Generator(model_name=MODEL_NAME)
+generator = Generator(model_name=MODEL_NAME, num_turns=NUM_TURNS)
 
 app = FastAPI(title="SmartStore FAQ Chatbot")
 
@@ -53,8 +54,14 @@ async def chat(req: ChatRequest):
     
     messages, oos_reply = generator.prepare_messages(context, user_query, chat_hist)
 
+    # only retain the last NUM_TURNS turns in the chat history
+    if len(chat_hist) >= NUM_TURNS:
+        chat_hist = chat_hist[-NUM_TURNS:]
+        conversations[sess_id] = chat_hist
+
     # save user turn
     chat_hist.append({"role": "user", "content": user_query})
+
 
     if oos_reply is not None:
         chat_hist.append({"role": "assistant", "content": oos_reply})
@@ -62,6 +69,7 @@ async def chat(req: ChatRequest):
             iter([oos_reply + "\n\n"]),
             media_type="text/plain"
         )
+
 
     async def streamer():
         assistant_buf = []  # collect chunks for history
@@ -76,9 +84,17 @@ async def chat(req: ChatRequest):
         assistant_reply = "".join(assistant_buf).strip()
         chat_hist.append({"role": "assistant", "content": assistant_reply})
 
+
     return StreamingResponse(streamer(), media_type="text/plain")
 
 # ---- run check ---- #
 @app.get("/")
 async def root():
     return {"status": "ok"}
+
+# reset conversations
+@app.post("/reset")
+async def reset_conversations():
+    global conversations
+    conversations = {}
+    return {"status": "conversations reset"}
