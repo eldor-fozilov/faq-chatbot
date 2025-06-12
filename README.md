@@ -1,7 +1,7 @@
 # SmartStore FAQ Chatbot
 
 A lightweight Retrieval‑Augmented Generation (RAG) service that answers **NAVER Smart Store** frequently‑asked questions in Korean, with real‑time streaming responses.\
-Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficient local text encoder is also available).
+Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficient local embedding model is also available).
 
 ---
 
@@ -39,7 +39,7 @@ OPENAI_MODEL=gpt-4o-mini
 COLLECTION_NAME=SmartStore_FAQ
 DATA_PATH=data/final_result.pkl
 DB_DIR=chroma_db
-USE_LOCAL_EMBEDDING=false # or true
+USE_LOCAL_EMBEDDING=false # default (preferred) [whether to use local embedding model or API-based model with OpenAI]
 ```
 
 ---
