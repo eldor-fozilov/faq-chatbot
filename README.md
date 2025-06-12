@@ -6,7 +6,7 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 ---
 
 ## Key Features
- * **RAG pipeline**: Embeds 2 717 SmartStore FAQ pairs, retrieves top‑*k* with Chroma, and answers questions based on context.  
+ * **RAG pipeline**: Embeds 2717 SmartStore FAQ pairs, retrieves top‑*k* with Chroma, and answers questions based on context.  
 *  **Multi‑turn context**: Retains both **user** and **assistant** turns for conversational continuity.
 *  **Out‑of‑scope guardrail**: Politely refuses to answer irrelevant queries.
 *  **Insufficient-context guardrail**: If the provided context is inssuficient to answer a question, the agent will inform about it to the user. 
@@ -23,7 +23,7 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 ├── utils.py          # Shared constants (system / OOS prompts)
 ├── requirements.txt  # required libraries
 └── data/
-    └── final_result.pkl  # 2 717 FAQ dict {question: answer}
+    └── final_result.pkl  # 2717 FAQ dict {question: answer}
 ```
 
 ## Environment & Installation
