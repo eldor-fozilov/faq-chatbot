@@ -39,6 +39,8 @@ class Retriever:
         # read the data
         with open(self.data_dir, "rb") as f:
             docs = pickle.load(f)
+        
+        print(f"Loaded {len(docs)} FAQ pairs from {self.data_dir}.")
 
         # select the embedding method
         if self.use_local_embedding:
@@ -71,21 +73,17 @@ class Retriever:
             return
 
         total_items = len(items)
-        print(f"Preparing to index {total_items} FAQ pairs into the collection...")
 
-        if not self.use_local_embedding:
-            # process the items in batches to avoid hitting OpenAI API limits
-            batch_size = 100
-            items = [items[i:i + batch_size] for i in range(0, len(items), batch_size)]
-            
-            for batch in items:
-                questions = [it["question"] for it in batch]
-                answers = [it["answer"] for it in batch]
-                collection.add(documents=questions, metadatas=[{"answer": ans} for ans in answers], ids=[it["id"] for it in batch])
-        else:
-            collection.add(documents=[it["question"] for it in items],
-                        metadatas=[{"answer": it["answer"]} for it in items],
-                        ids=[it["id"] for it in items])
+        batch_size = 100
+        items = [items[i:i + batch_size] for i in range(0, len(items), batch_size)]
+        
+        # show progress
+        print(f"Indexing {total_items} FAQ pairs into the collection '{self.collection_name}' in batches of {batch_size}...")
+        from tqdm import tqdm
+        for batch in tqdm(items, desc=f"Indexing FAQ pairs.", unit="batch"):
+            questions = [it["question"] for it in batch]
+            answers = [it["answer"] for it in batch]
+            collection.add(documents=questions, metadatas=[{"answer": ans} for ans in answers], ids=[it["id"] for it in batch])
 
         print(f"Finished indexing {total_items} FAQ pairs into the collection '{self.collection_name}'.")
 
