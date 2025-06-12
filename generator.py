@@ -23,7 +23,7 @@ class Generator:
             return None, OOS_PROMPT
 
         context_block = "\n".join(
-            f"Question: {r['question']}\nAnswer: {r['answer']}" for r in context
+            f"질문: {r['question']}\n답변: {r['answer']}" for r in context
         )
 
         messages = [
