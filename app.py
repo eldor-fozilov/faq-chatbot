@@ -7,8 +7,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
-from utils import FOLLOW_UP_PROMPT
-
 from dotenv import load_dotenv
 load_dotenv()  # load environment variables from .env file
 
@@ -20,7 +18,7 @@ DATA_PATH = os.getenv("DATA_PATH", "data/final_result.pkl")
 DB_DIR = os.getenv("DB_DIR", "chroma_db")
 USE_LOCAL_EMBEDDING = os.getenv("USE_LOCAL_EMBEDDING", "false").lower() == "true"
 
-TOP_K = 5 # number of top results to return from the vector DB
+TOP_K = 8 # number of top results to return from the vector DB
 
 retriever = Retriever(
     collection_name=COLLECTION_NAME,
@@ -69,11 +67,12 @@ async def chat(req: ChatRequest):
         async for chunk in generator.stream_completion(messages):
             assistant_buf.append(chunk)
             yield chunk
+        
+        yield "\n\n"
 
         # save assistant turn
         assistant_reply = "".join(assistant_buf).strip()
         chat_hist.append({"role": "assistant", "content": assistant_reply})
-        yield FOLLOW_UP_PROMPT
 
     return StreamingResponse(streamer(), media_type="text/plain")
 
