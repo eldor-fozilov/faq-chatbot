@@ -11,12 +11,12 @@ load_dotenv() # load environment variables from .env file
 
 
 class Retriever:
-    def __init__(self, collection_name: str, use_local_embedding: bool, data_dir: str,
+    def __init__(self, collection_name: str, use_local_embedding: bool, data_path: str,
                   save_dir: str = "chroma_db", top_k: int = 4, sim_threshold: float = 0.3):
 
         self.collection_name = collection_name
         self.use_local_embedding = use_local_embedding
-        self.data_dir = data_dir
+        self.data_path = data_path
         self.save_dir = save_dir
         self.top_k = top_k
         self.sim_threshold = sim_threshold
@@ -37,10 +37,10 @@ class Retriever:
     def build_vector_db(self):
 
         # read the data
-        with open(self.data_dir, "rb") as f:
+        with open(self.data_path, "rb") as f:
             docs = pickle.load(f)
         
-        print(f"Loaded {len(docs)} FAQ pairs from {self.data_dir}.")
+        print(f"Loaded {len(docs)} FAQ pairs from {self.data_path}.")
 
         # select the embedding method
         if self.use_local_embedding:
@@ -110,7 +110,7 @@ class Retriever:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, default=os.getenv("DATA_PATH", "data/final_result.pkl"), help="Path to the FAQ data file (pickle format).")
+    parser.add_argument("--data_path", type=str, default=os.getenv("DATA_PATH", "data/final_result.pkl"), help="Path to the FAQ data file (pickle format).")
     parser.add_argument("--collection_name", type=str, default=os.getenv("COLLECTION_NAME", "SmartStore_FAQ"), help="Name of the Chroma collection for the vector database.")
     parser.add_argument("--use_local_embedding", type=bool, default=os.getenv("USE_LOCAL_EMBEDDING", "false").lower() == "true",
                         help="OpenAI model (text-embedding-3-small) is used by default. Set to True to use local embedding model (SentenceTransformer: all-MiniLM-L6-v2).")
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default=os.getenv("DB_DIR", "chroma_db"), help="Directory to save the Chroma vector database.")
     args = parser.parse_args()
 
-    retriever = Retriever(collection_name=args.collection_name, use_local_embedding=args.use_local_embedding, data_dir=args.data_dir, save_dir=args.save_dir)
+    retriever = Retriever(collection_name=args.collection_name, use_local_embedding=args.use_local_embedding, data_path=args.data_path, save_dir=args.save_dir)
     # build the vector database
     if args.build_db:
         retriever.build_vector_db()
@@ -129,8 +129,8 @@ if __name__ == "__main__":
     if args.query_db:
         if not args.query:
             raise ValueError("Please provide a query using --query argument.")
-        if not os.path.exists(args.data_dir):
-            raise FileNotFoundError(f"Data file {args.data_dir} does not exist. Please provide a valid path to the FAQ data file.")
+        if not os.path.exists(args.data_path):
+            raise FileNotFoundError(f"Data file {args.data_path} does not exist. Please provide a valid path to the FAQ data file.")
         if not retriever.collection.count():
             print(f"Collection '{args.collection_name}' is empty. Please build the vector database first using --build_db.")
             exit(1)
