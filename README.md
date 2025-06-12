@@ -72,6 +72,13 @@ To see a streaming response, test through CLI:
 >      -d '{"session_id":"cli","message":"스마트스토어센터 가입 절차는 어떻게 되나요?"}'
 > ```
 
+To reset conversation history during running the server through CLI, run the following command:
+
+>
+> ```bash
+> curl -N -X POST http://localhost:8000/reset
+> ```
+
 ---
 
 ## Overall Chatbot Pipeline
