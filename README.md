@@ -17,7 +17,7 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 ## Repository Layout
 
 ```
-├── app.py            # FastAPI entry‑point (streaming)
+├── app.py            # FastAPI entry‑point (streaming) + conversation history tracker
 ├── generator.py      # OpenAI Async wrapper + prompt builder
 ├── retriever.py      # Vector DB creator + Chroma search helper
 ├── utils.py          # Shared constants (system / OOS prompts)
@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 # 2. create an .env file and specify the following variables
 OPENAI_API_KEY="" # please provide an OpenAI key (required)
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-4o-mini # default, other OpenAI models can also be used
 COLLECTION_NAME=SmartStore_FAQ
 DATA_PATH=data/final_result.pkl
 DB_DIR=chroma_db
@@ -76,12 +76,15 @@ To see a streaming response, test through CLI:
 
 ## Overall Chatbot Pipeline
 
+0. **Vector DB Creation**\
+	 `Retriever.build_vector_db()` builds the vector base using Chroma 
+		and stores embedding in the local folder, skipping already‑indexed items if there are any.
 1. **Vector Search**\
-   `Retriever.query()` embeds the user query (OpenAI or local) and fetches the top‑*k* FAQ questions whose cosine **similarity** ≥ `0.3` (can be configured).
+   `Retriever.query()` embeds the user query (OpenAI or local) and fetches the top‑*k* FAQ questions whose cosine **similarity** ≥ `0.2` (can be configured).
 2. **Prompt Assembly**\
-   `Generator.prepare_messages()` injects those Q&A pairs plus recent chat history into an OpenAI system/user prompt.
+   `Generator.prepare_messages()` injects those Q&A pairs plus recent chat history (last N turns) into an OpenAI system/user prompt.
 3. **Generation**\
-   `AsyncOpenAI` streams tokens; server yields them instantly to the client.
+   `Generator.stream_completion()` streams tokens; server yields them instantly to the client.
 4. **Conversation Memory**\
    After streaming, the assistant’s full reply is appended to `conversations[session_id]`, which is utilized to provide more contextualized responses.
 
