@@ -19,13 +19,15 @@ DB_DIR = os.getenv("DB_DIR", "chroma_db")
 USE_LOCAL_EMBEDDING = os.getenv("USE_LOCAL_EMBEDDING", "false").lower() == "true"
 
 TOP_K = 8 # number of top results to return from the vector DB
+SIMILARITY_THRESHOLD = 0.3 # minimum similarity to consider a result relevant
 
 retriever = Retriever(
     collection_name=COLLECTION_NAME,
     use_local_embedding=USE_LOCAL_EMBEDDING,
     data_dir=DATA_PATH,
     save_dir=DB_DIR,
-    top_k=TOP_K
+    top_k=TOP_K,
+    sim_threshold=SIMILARITY_THRESHOLD
 )
 retriever.build_vector_db() # build the vector DB if not already done
 

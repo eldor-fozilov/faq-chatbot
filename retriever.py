@@ -11,13 +11,15 @@ load_dotenv() # load environment variables from .env file
 
 
 class Retriever:
-    def __init__(self, collection_name: str, use_local_embedding: bool, data_dir: str, save_dir: str = "chroma_db", top_k: int = 4):
+    def __init__(self, collection_name: str, use_local_embedding: bool, data_dir: str,
+                  save_dir: str = "chroma_db", top_k: int = 4, sim_threshold: float = 0.3):
 
         self.collection_name = collection_name
         self.use_local_embedding = use_local_embedding
         self.data_dir = data_dir
         self.save_dir = save_dir
         self.top_k = top_k
+        self.sim_threshold = sim_threshold
 
         # select the embedding method
         if use_local_embedding:
@@ -87,10 +89,13 @@ class Retriever:
 
         print(f"Finished indexing {total_items} FAQ pairs into the collection '{self.collection_name}'.")
 
-    def query(self, query: str, top_k: int = None, sim_threshold: float = 0.3):
+    def query(self, query: str, top_k: int = None, sim_threshold: float = None):
 
         if top_k is None:
             top_k = self.top_k
+        if sim_threshold is None:
+            sim_threshold = self.sim_threshold
+
         results = self.collection.query(query_texts=[query], n_results=top_k, include=["documents", "metadatas", "distances"])
 
         docs, metas, dists = results["documents"], results["metadatas"], results["distances"]
@@ -107,23 +112,36 @@ class Retriever:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, default="data/final_result.pkl", help="Path to the FAQ data file (pickle format).")
-    parser.add_argument("--collection_name", type=str, default="SmartStore_FAQ", help="Name of the Chroma collection for the vector database.")
-    parser.add_argument("--use_local_embedding", type=bool, default=False, 
+    parser.add_argument("--data_dir", type=str, default=os.getenv("DATA_PATH", "data/final_result.pkl"), help="Path to the FAQ data file (pickle format).")
+    parser.add_argument("--collection_name", type=str, default=os.getenv("COLLECTION_NAME", "SmartStore_FAQ"), help="Name of the Chroma collection for the vector database.")
+    parser.add_argument("--use_local_embedding", type=bool, default=os.getenv("USE_LOCAL_EMBEDDING", "false").lower() == "true",
                         help="OpenAI model (text-embedding-3-small) is used by default. Set to True to use local embedding model (SentenceTransformer: all-MiniLM-L6-v2).")
-    parser.add_argument("--save_dir", type=str, default="chroma_db", help="Directory to save the Chroma vector database.")
+    parser.add_argument("--top_k", type=int, default=4, help="Number of top results to return from the vector database.")
+    parser.add_argument ("--build_db", action='store_true', help="Build the vector database from the FAQ data file.")
+    parser.add_argument("--query_db", action='store_true', help="Query the vector database with a user-defined query.")
+    parser.add_argument("--query", type=str, default="스마트스토어에 입점하려면 어떻게 해야 하나요?", help="User-defined query to test the vector database.")
+    parser.add_argument("--save_dir", type=str, default=os.getenv("DB_DIR", "chroma_db"), help="Directory to save the Chroma vector database.")
     args = parser.parse_args()
 
     retriever = Retriever(collection_name=args.collection_name, use_local_embedding=args.use_local_embedding, data_dir=args.data_dir, save_dir=args.save_dir)
     # build the vector database
-    retriever.build_vector_db()
+    if args.build_db:
+        retriever.build_vector_db()
     # example query
-    example_query = "스마트스토어에 입점하려면 어떻게 해야 하나요?"
-    results = retriever.query(example_query)
-    print(f"Query: {example_query}")
-    for idx, res in enumerate(results):
-        print(f"Result {idx + 1}:")
-        print(f"  Question: {res['question']}")
-        print(f"  Answer: {res['answer']}")
-        print(f"  Distance: {res['dist']:.4f}")
+    if args.query_db:
+        if not args.query:
+            raise ValueError("Please provide a query using --query argument.")
+        if not os.path.exists(args.data_dir):
+            raise FileNotFoundError(f"Data file {args.data_dir} does not exist. Please provide a valid path to the FAQ data file.")
+        if not retriever.collection.count():
+            print(f"Collection '{args.collection_name}' is empty. Please build the vector database first using --build_db.")
+            exit(1)
+        
+        results = retriever.query(args.query)
+        print(f"Query: {args.query}")
+        for idx, res in enumerate(results):
+            print(f"Result {idx + 1}:")
+            print(f"  Question: {res['question']}")
+            print(f"  Answer: {res['answer']}")
+            print(f"  Distance: {res['dist']:.4f}")
 
