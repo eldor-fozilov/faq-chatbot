@@ -8,9 +8,10 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 ## Key Features
  * **RAG pipeline**: Embeds 2717 SmartStore FAQ pairs, retrieves top‑*k* with Chroma, and answers questions based on context.  
 *  **Multi‑turn context**: Retains both **user** and **assistant** turns for conversational continuity.
+*  **Query Refinement**: Dynamically refines the query for better retrieval based on the chat history (OpenAI’s Structured Output API is utilized)
 *  **Out‑of‑scope guardrail**: Politely refuses to answer irrelevant queries.
 *  **Insufficient-context guardrail**: If the provided context is inssuficient to answer a question, the agent will inform about it to the user. 
-*  **Configurable components**: Switch between different OpenAI language models and choose whether to use local embedding model via `.env`.
+*  **Configurable components**: Switchs between different OpenAI language models and choose whether to use local embedding model via `.env`.
 *  **Efficient vector database creation**: Vector database is created and stored in the local folder for easy and efficient access.
 
 
@@ -34,7 +35,7 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 │ ├── adapters/
 │ │ ├── generator.py # Generator class: OpenAI Async wrapper + prompt builder
 │ │ ├── retriever.py # Retriever class: Vector DB creator + Chroma search helper
-│ └── utils.py
+│ └── utils.py # prompts and other useful functions
 └── data/final_result.pkl
 
 ```
@@ -113,13 +114,15 @@ To reset conversation history during running the server through CLI, run the fol
 0. **Vector DB Creation**\
 	 `Retriever.build_vector_db()` builds the vector base using Chroma 
 		and stores embedding in the local folder, skipping already‑indexed items if there are any.
-1. **Vector Search**\
-   `Retriever.query()` embeds the user query (OpenAI or local) and fetches the top‑*k* FAQ questions whose cosine **similarity** ≥ `0.2` (can be configured).
-2. **Prompt Assembly**\
+1. **Query Refinement**\
+   `Generator.refine_query()` modifies the user query based on the existing chat history (if it is necessary) for better context retrieval
+2. **Vector Search**\
+   `Retriever.query()` embeds the (modified) user query (OpenAI or local) and fetches the top‑*k* FAQ questions whose cosine **similarity** ≥ `0.2` (can be configured).
+3. **Prompt Assembly**\
    `Generator.prepare_messages()` injects those Q&A pairs plus recent chat history (last N turns) into an OpenAI system/user prompt.
-3. **Generation**\
+4. **Generation**\
    `Generator.stream_response()` streams tokens; server yields them instantly to the client.
-4. **Conversation Memory**\
+5. **Conversation Memory**\
    After streaming, the assistant’s full reply is appended to `conversations[session_id]`, which is utilized to provide more contextualized responses.
 
 ---
