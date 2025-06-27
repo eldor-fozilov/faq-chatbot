@@ -31,6 +31,16 @@ async def chat(req: ChatRequest):
     sess_id, user_query = req.session_id, req.message.strip()
     chat_hist = conversations.setdefault(sess_id, [])
 
+    if chat_hist:
+        refined_query = await generator.refine_query(
+            user_query, chat_hist
+        )  # refine query if needed (based on chat history)
+
+        if refined_query is not None:
+            # print(f"Original query: {user_query}")
+            # print(f"Refined query: {refined_query.strip()}")
+            user_query = refined_query.strip()
+
     context = retriever.query(user_query)
     chat_hist.append({"role": "user", "content": user_query})
 
@@ -45,6 +55,8 @@ async def chat(req: ChatRequest):
         # save assistant turn
         assistant_reply = "".join(assistant_buf).strip()
         chat_hist.append({"role": "assistant", "content": assistant_reply})
+
+    conversations[sess_id] = chat_hist
 
     return StreamingResponse(streamer(), media_type="text/plain")
 

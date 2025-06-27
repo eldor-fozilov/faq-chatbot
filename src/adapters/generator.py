@@ -1,6 +1,14 @@
 from openai import AsyncOpenAI
 from src.domain.chat import GeneratorPort
-from src.utils import OOS_PROMPT, SYSTEM_PROMPT
+from src.utils import OOS_PROMPT, SYSTEM_PROMPT, QUERY_REFINEMENT_PROMPT
+from pydantic import BaseModel, Field
+
+
+class QueryFormat(BaseModel):
+    refine_query: bool = Field(
+        ..., description="질문을 실제로 수정했으면 true, 수정이 필요 없으면 false."
+    )
+    refined_query: str = Field(..., description="최종 한국어 질문 문장.")
 
 
 class Generator(GeneratorPort):
@@ -54,11 +62,11 @@ class Generator(GeneratorPort):
         ]
 
         if self.ans_in_chat_hist:
-            # include both user and assistant turns in the history
+            # include both user and assistant turns from the chat history
             for turn in chat_history[-self.num_turns :]:
                 messages.append(turn)
         else:
-            # only include user turns in the history
+            # only include user turns from the chat history
             messages.extend(
                 {"role": "user", "content": turn["content"]}
                 for turn in chat_history[-self.num_turns :]
@@ -68,3 +76,35 @@ class Generator(GeneratorPort):
         messages.append({"role": "user", "content": user_query})
 
         return messages
+
+    async def refine_query(self, user_query: str, chat_history: list[dict]):
+        messages = [
+            {"role": "system", "content": QUERY_REFINEMENT_PROMPT},
+        ]
+        for turn in chat_history[-self.num_turns :]:
+            messages.append(turn)
+
+        messages.append(
+            {"role": "user", "content": "변환할 사용자 질문: " + user_query}
+        )
+
+        try:
+            resp = await self.client.chat.completions.parse(
+                model=self.model_name,
+                messages=messages,
+                temperature=self.temperature,
+                response_format=QueryFormat,
+            )
+        except Exception as e:
+            print(
+                f"Error during query refinement: {e}"
+            )  #  refusal, content_filter, etc.
+            return None
+
+        resp = resp.choices[0].message
+
+        if not resp.parsed.refine_query:
+            return None
+
+        refined_query = resp.parsed.refined_query.strip()
+        return refined_query
