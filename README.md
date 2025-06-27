@@ -11,35 +11,61 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 *  **Out‑of‑scope guardrail**: Politely refuses to answer irrelevant queries.
 *  **Insufficient-context guardrail**: If the provided context is inssuficient to answer a question, the agent will inform about it to the user. 
 *  **Configurable components**: Switch between different OpenAI language models and choose whether to use local embedding model via `.env`.
-*  **Efficient vector database creation**: `retriever.build_vector_db()` creates and stores embedding in the local folder, skipping already‑indexed items if there are any.
+*  **Efficient vector database creation**: Vector database is created and stored in the local folder for easy and efficient access.
 
 
 ## Repository Layout
-
-```
+<!-- 
 ├── app.py            # FastAPI entry‑point (streaming) + conversation history tracker
 ├── generator.py      # OpenAI Async wrapper + prompt builder
 ├── retriever.py      # Vector DB creator + Chroma search helper
 ├── utils.py          # Shared constants (system / OOS prompts)
 ├── requirements.txt  # required libraries
 └── data/
-    └── final_result.pkl  # 2717 FAQ dict {question: answer}
+    └── final_result.pkl  # 2717 FAQ dict {question: answer} -->
+
+```
+├── pyproject.toml # project dependencies
+├── poetry.lock # to ensure consistent environments 
+├── src/
+│ ├── domain/chat.py # core properties of FAQ chatbot
+│ ├── app/main.py # FastAPI entry‑point (streaming) + conversation history tracker
+│ ├── containers.py # DI wiring
+│ ├── adapters/
+│ │ ├── generator.py # Generator class: OpenAI Async wrapper + prompt builder
+│ │ ├── retriever.py # Retriever class: Vector DB creator + Chroma search helper
+│ └── utils.py
+└── data/final_result.pkl
+
 ```
 
 ## Environment & Installation
 
 ```bash
-# 1. clone repo and install necessary libraries
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# 1. clone repo and install necessary libraries using poetry
+curl -sSL https://install.python-poetry.org | python3 - # download poetry package (and set the path) if it does not exist already
+poetry install
 
+# run ruff for linting and formating (optional)
+poetry ruff check .
+poetry ruff format .
+```
+
+```bash
 # 2. create an .env file and specify the following variables
+
+# Main configuration parameters
 OPENAI_API_KEY="" # please provide an OpenAI key (required)
 OPENAI_MODEL=gpt-4o-mini # default, other OpenAI models can also be used
 COLLECTION_NAME=SmartStore_FAQ
-DATA_PATH=data/final_result.pkl
 DB_DIR=chroma_db
 USE_LOCAL_EMBEDDING=false # default (preferred) [whether to use local embedding model or API-based model with OpenAI]
+
+# Additional configuration parameters
+DATA_PATH = "data/final_result.pkl"
+TOP_K = 5
+SIM_THRESHOLD = 0.2
+NUM_TURNS = 8
 ```
 
 ---
@@ -48,10 +74,10 @@ USE_LOCAL_EMBEDDING=false # default (preferred) [whether to use local embedding 
 
 ```bash
 # 1. first build the vector db
-python retriever.py --build_db
+poetry run python src/adapters/retriever.py --build_db
 
 # 2. launch API
-uvicorn app:app --port 8000 --reload
+poetry run uvicorn src.app.main:app --port 8000 --reload
 ```
 
 Visit [**http://localhost:8000/docs**](http://localhost:8000/docs) and use the `/chat` endpoint.  Example body:
@@ -76,7 +102,7 @@ To reset conversation history during running the server through CLI, run the fol
 
 >
 > ```bash
-> curl -N -X POST http://localhost:8000/reset
+> curl -N -X POST http://localhost:8000/reset -w "\n"
 > ```
 
 ---
@@ -91,7 +117,7 @@ To reset conversation history during running the server through CLI, run the fol
 2. **Prompt Assembly**\
    `Generator.prepare_messages()` injects those Q&A pairs plus recent chat history (last N turns) into an OpenAI system/user prompt.
 3. **Generation**\
-   `Generator.stream_completion()` streams tokens; server yields them instantly to the client.
+   `Generator.stream_response()` streams tokens; server yields them instantly to the client.
 4. **Conversation Memory**\
    After streaming, the assistant’s full reply is appended to `conversations[session_id]`, which is utilized to provide more contextualized responses.
 
