@@ -44,6 +44,10 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 
 ```bash
 # 1. clone repo and install necessary libraries using poetry
+# clone repo
+git clone https://github.com/eldor-fozilov/faq-chatbot.git
+cd faq-chatbot/
+# poetry setup
 curl -sSL https://install.python-poetry.org | python3 - # download poetry package (and set the path) if it does not exist already
 poetry install
 
