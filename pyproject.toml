@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "faq-chatbot"
 version = "0.1.0"
-description = "NAVER SmartStore FAQ chatbot"
+description = "SmartStore FAQ Chatbot"
 authors = ["Eldor Fozilov <eldorfozilov@gmail.com>"]
 packages = [{ include = "src" }]
 

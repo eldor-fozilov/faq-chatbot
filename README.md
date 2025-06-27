@@ -28,7 +28,7 @@ Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficie
 ├── pyproject.toml # project dependencies
 ├── poetry.lock # to ensure consistent environments 
 ├── src/
-│ ├── domain/chat.py # core properties of FAQ chatbot
+│ ├── domain/chat.py # core application interfaces of FAQ chatbot
 │ ├── app/main.py # FastAPI entry‑point (streaming) + conversation history tracker
 │ ├── containers.py # DI wiring
 │ ├── adapters/
@@ -47,12 +47,13 @@ curl -sSL https://install.python-poetry.org | python3 - # download poetry packag
 poetry install
 
 # run ruff for linting and formating (optional)
-poetry ruff check .
-poetry ruff format .
+poetry run ruff check .
+poetry run ruff format .
 ```
 
 ```bash
-# 2. create an .env file and specify the following variables
+# 2. create an .env file and specify the following variables (start with .env.example)
+cp .env.example .env
 
 # Main configuration parameters
 OPENAI_API_KEY="" # please provide an OpenAI key (required)
