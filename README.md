@@ -1,6 +1,6 @@
 # SmartStore FAQ Chatbot
 
-A lightweight Retrieval‑Augmented Generation (RAG) service that answers **NAVER Smart Store** frequently‑asked questions in Korean, with real‑time streaming responses.\
+A lightweight Retrieval‑Augmented Generation (RAG) service that answers **NAVER Smart Store** frequently‑asked questions ([FAQ dataset link](https://help.sell.smartstore.naver.com/index.help)) in Korean, with real‑time streaming responses.\
 Built with **FastAPI**, **Chroma** vector DB, and **OpenAI** embeddings (efficient local embedding model is also available).
 
 ---
